@@ -12,8 +12,8 @@ import defaults
 
 if __name__ == '__main__' :
     # Read image
-    img = cv2.imread(str(Path("RedEyeRemover/Pictures/Bloodshot/irritated.png")), cv2.IMREAD_COLOR)
-    # img = cv2.imread(str(Path("RedEyeRemover/Pictures/Bloodshot/edited5.jpg")), cv2.IMREAD_COLOR)
+    # img = cv2.imread(str(Path("RedEyeRemover/Pictures/Bloodshot/irritated.png")), cv2.IMREAD_COLOR)
+    img = cv2.imread(str(Path("RedEyeRemover/Pictures/Bloodshot/edited6.jpg")), cv2.IMREAD_COLOR)
     
     # Output image
     imgOut = img.copy()
