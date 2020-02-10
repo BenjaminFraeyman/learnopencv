@@ -6,6 +6,7 @@
 import cv2
 import numpy as np
 import math
+from pathlib import Path
 
 def fillHoles(mask):
     '''
@@ -20,17 +21,17 @@ def fillHoles(mask):
     return mask2 | mask
 
 if __name__ == '__main__' :
+    cwd = Path.cwd()
 
     # Read image
-    # img = cv2.imread("C:/Users/pollepel/Desktop/MASTERPROEF/code/learnopencv/RedEyeRemover/Pictures/Bloodshot/own_1.jpg", cv2.IMREAD_COLOR)
-    img = cv2.imread("C:/Users/pollepel/Desktop/MASTERPROEF/code/learnopencv/RedEyeRemover/Pictures/Bloodshot/edited4.jpg", cv2.IMREAD_COLOR)
+    img = cv2.imread(str(Path("RedEyeRemover/Pictures/Bloodshot/edited4.jpg")), cv2.IMREAD_COLOR)
     
     # Output image
     imgOut = img.copy()
     
     # Load HAAR cascade
-    # eyesCascade = cv2.CascadeClassifier("C:/Users/pollepel/Desktop/MASTERPROEF/code/learnopencv/RedEyeRemover/HaarCascades/default.xml")
-    eyesCascade = cv2.CascadeClassifier("C:/Users/pollepel/Desktop/MASTERPROEF/code/learnopencv/RedEyeRemover/HaarCascades/test1.xml")
+    # eyesCascade = cv2.CascadeClassifier(str(Path("RedEyeRemover/HaarCascades/default.xml")))
+    eyesCascade = cv2.CascadeClassifier(str(Path("RedEyeRemover/HaarCascades/test1.xml")))
     
     minwidth = int(img.shape[1] / 7)
     minheight = int(img.shape[0] / 9)
