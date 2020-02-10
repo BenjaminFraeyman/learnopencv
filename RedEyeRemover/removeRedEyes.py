@@ -7,24 +7,13 @@ import cv2
 import numpy as np
 import math
 from pathlib import Path
-
-def fillHoles(mask):
-    '''
-        This hole filling algorithm is decribed in this post
-        https://www.learnopencv.com/filling-holes-in-an-image-using-opencv-python-c/
-    '''
-    maskFloodfill = mask.copy()
-    h, w = maskFloodfill.shape[:2]
-    maskTemp = np.zeros((h+2, w+2), np.uint8)
-    cv2.floodFill(maskFloodfill, maskTemp, (0, 0), 255)
-    mask2 = cv2.bitwise_not(maskFloodfill)
-    return mask2 | mask
+import redeyelib as rel
+import defaults
 
 if __name__ == '__main__' :
-    cwd = Path.cwd()
-
     # Read image
-    img = cv2.imread(str(Path("RedEyeRemover/Pictures/Bloodshot/edited4.jpg")), cv2.IMREAD_COLOR)
+    img = cv2.imread(str(Path("RedEyeRemover/Pictures/Bloodshot/irritated.png")), cv2.IMREAD_COLOR)
+    # img = cv2.imread(str(Path("RedEyeRemover/Pictures/Bloodshot/edited5.jpg")), cv2.IMREAD_COLOR)
     
     # Output image
     imgOut = img.copy()
@@ -45,8 +34,10 @@ if __name__ == '__main__' :
     # For every detected eye
     for (x, y, w, h) in eyes:
         # Make eye selection a bit smaller
-        # y = y + 45
-        # h = h - 70
+        y = y + defaults.Y_TOP_REDUCTION
+        h = h - defaults.Y_BOTTOM_REDUCTION
+        x = x + defaults.X_LEFT_OFFSET
+        w = w - defaults.X_RIGHT_OFFSET
 
         # Extract eye from the image
         eye = img[y:y+h, x:x+w]
@@ -59,29 +50,46 @@ if __name__ == '__main__' :
         g = eye[:, :, 1]
         r = eye[:, :, 2]
 
-        r = r - 20
+        # Reduce redness overall
+        r = r - defaults.RED_OFFSET
 
-        # filter to detect redness
+        cutoffs = []
+
+        for x_value in range(0, int(w/2)):
+            cutoffs.append([x_value, rel.ellipse_Y(w, h, x_value)])
+
+        for (cutoff_x, cutoff_y) in cutoffs:
+            cutoff_y_upper = int(h/2) - cutoff_y
+            cutoff_y_lower = int(h/2) + cutoff_y
+
+            for y_row in range(0, cutoff_y_upper):
+                r[y_row][:cutoff_x] = 0
+                r[y_row][w - cutoff_x:] = 0
+
+            for y_row in range(cutoff_y_lower, h):
+                r[y_row][:cutoff_x] = 0
+                r[y_row][w - cutoff_x:] = 0
+
+        # Filter to detect redness
         f = eye[:, :, 0].astype(np.float)
 
         # https://ieeexplore.ieee.org/document/1038147
         for row, (blue_row, green_row, red_row) in enumerate(zip(b, g, r)):
             for column, (blue, green, red) in enumerate(zip(blue_row, green_row, red_row)):
-                f[row, column] = float(math.pow(red, 2) / (math.pow(blue, 2) + math.pow(green, 2)))
-                # print(f[row, column])
+                f[row, column] = float(math.pow(red, 2) / (math.pow(blue, 2) + math.pow(green, 2) + 1))
 
-        # Add the green and blue channels.
+        # Add the green and blue channels together.
         bg = cv2.add(b, g)
 
         # Simple red eye detector.
-        #mask_higher = (r > 80) &  (r > bg)
-        mask_higher = (f > 0.80) & (r > b) & (r > g)
+        # mask_higher = (r > 80) &  (r > bg)
+        mask_higher = (f > defaults.REDNESS_FILTER) & (r > b) & (r > g)
         
         # Convert the mask to uint8 format.
         mask_higher = mask_higher.astype(np.uint8)*255
 
         # Clean mask -- 1) Fill holes 2) Dilate (expand) mask.
-        # mask_higher = fillHoles(mask_higher)
+        # mask_higher = rel.fillHoles(mask_higher)
         # mask_higher = cv2.dilate(mask_higher, None, anchor=(-1, -1), iterations=3, borderType=1, borderValue=1)
 
         # Calculate the mean channel by averaging the green and blue channels
