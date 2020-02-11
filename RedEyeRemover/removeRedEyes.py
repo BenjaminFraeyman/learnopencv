@@ -11,19 +11,23 @@ import redeyelib as rel
 import defaults
 
 if __name__ == '__main__' :
+    if defaults.LOG_SAVE:
+        if not defaults.LOG_SAVE_DESTINATION.exists():
+            defaults.LOG_SAVE_DESTINATION.parent.mkdir(parents=True, exist_ok=True)
+        # Making sure the logfile is empty
+        open(defaults.LOG_SAVE_DESTINATION, "w").close()
+
     # Read image
-    # img = cv2.imread(str(Path("RedEyeRemover/Pictures/Bloodshot/irritated.png")), cv2.IMREAD_COLOR)
-    img = cv2.imread(str(Path("RedEyeRemover/Pictures/Bloodshot/edited6.jpg")), cv2.IMREAD_COLOR)
+    img = cv2.imread(str(defaults.INPUT_IMAGE), cv2.IMREAD_COLOR)
     
     # Output image
     imgOut = img.copy()
     
     # Load HAAR cascade
-    # eyesCascade = cv2.CascadeClassifier(str(Path("RedEyeRemover/HaarCascades/default.xml")))
-    eyesCascade = cv2.CascadeClassifier(str(Path("RedEyeRemover/HaarCascades/test1.xml")))
+    eyesCascade = cv2.CascadeClassifier(str(defaults.CLASSIFIER_CASCADE))
     
-    minwidth = int(img.shape[1] / 7)
-    minheight = int(img.shape[0] / 9)
+    minwidth = int(img.shape[1] * defaults.EYE_W_RATIO)
+    minheight = int(img.shape[0] * defaults.EYE_H_RATIO)
 
     # Detect eyes
     # https://www.bogotobogo.com/python/OpenCV_Python/python_opencv3_Image_Object_Detection_Face_Detection_Haar_Cascade_Classifiers.php
@@ -35,6 +39,10 @@ if __name__ == '__main__' :
     for eye_counter, (x, y, w, h) in enumerate(eyes):
         if defaults.VERBOSE:
             print(f'---- Current eye: {eye_counter} ----')
+        if defaults.LOG_SAVE:
+            with open(defaults.LOG_SAVE_DESTINATION, "a+") as LOGFILE:
+                LOGFILE.write(f'---- Current eye: {eye_counter} ----\r\n')
+        
 
         # Make eye selection a bit smaller
         y = y + defaults.Y_TOP_REDUCTION
@@ -80,9 +88,14 @@ if __name__ == '__main__' :
                 r[y_row][w - cutoff_x:] = 0
 
         if defaults.VERBOSE:
-            print(f'total pixels: {h * w}p')
-            print(f'non-discarded pixels: {non_discarded_pixels}p')
-            print(f'percentage of discarded pixels: {1 - (non_discarded_pixels / (h * w))}%')
+            print(f'\ttotal pixels: {h * w}p')
+            print(f'\tnon-discarded pixels: {non_discarded_pixels}p')
+            print(f'\tpercentage of discarded pixels: {np.round(1 - (non_discarded_pixels / (h * w)), 3)}%')
+        if defaults.LOG_SAVE:
+            with open(defaults.LOG_SAVE_DESTINATION, "a+") as LOGFILE:
+                LOGFILE.write(f'\ttotal pixels: {h * w}p\r\n')
+                LOGFILE.write(f'\tnon-discarded pixels: {non_discarded_pixels}p\r\n')
+                LOGFILE.write(f'\tpercentage of discarded pixels: {np.round(1 - (non_discarded_pixels / (h * w)), 3)}%\r\n')
 
         # Filter to detect redness
         f = eye[:, :, 0].astype(np.float)
@@ -113,8 +126,12 @@ if __name__ == '__main__' :
                 masked_pixels += 0
 
         if defaults.VERBOSE:
-            print(f'masked pixels: {masked_pixels}p')
-            print(f'masked percentage: {masked_pixels / non_discarded_pixels}%')
+            print(f'\tmasked pixels: {masked_pixels}p')
+            print(f'\tmasked percentage: {np.round(masked_pixels / non_discarded_pixels, 3)}%')
+        if defaults.LOG_SAVE:
+            with open(defaults.LOG_SAVE_DESTINATION, "a+") as LOGFILE:
+                LOGFILE.write(f'\tmasked pixels: {masked_pixels}p\r\n')
+                LOGFILE.write(f'\tmasked percentage: {np.round(masked_pixels / non_discarded_pixels, 3)}%\r\n')
 
         # Clean mask -- 1) Fill holes 2) Dilate (expand) mask.
         # mask = rel.fillHoles(mask)

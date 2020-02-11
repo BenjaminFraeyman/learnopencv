@@ -1,0 +1,12 @@
+---- Current eye: 0 ----
+	total pixels: 3504p
+	non-discarded pixels: 2572p
+	percentage of discarded pixels: 0.266%
+	masked pixels: 119p
+	masked percentage: 0.046%
+---- Current eye: 1 ----
+	total pixels: 3626p
+	non-discarded pixels: 2732p
+	percentage of discarded pixels: 0.247%
+	masked pixels: 1385p
+	masked percentage: 0.507%
