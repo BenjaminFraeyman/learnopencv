@@ -42,6 +42,7 @@ if __name__ == '__main__' :
         # Extract eye from the image
         eye = img[y:y+h, x:x+w]
 
+        # Display eye
         # cv2.imshow('Eye', eye)
         # cv2.waitKey(0)
 
@@ -53,22 +54,31 @@ if __name__ == '__main__' :
         # Reduce redness overall
         r = r - defaults.RED_OFFSET
 
+        # Calculate ellipse cutoffs
         cutoffs = []
-
         for x_value in range(0, int(w/2)):
             cutoffs.append([x_value, rel.ellipse_Y(w, h, x_value)])
+
+        # Pixels that do not count
+        non_discarded_pixels = 0
 
         for (cutoff_x, cutoff_y) in cutoffs:
             cutoff_y_upper = int(h/2) - cutoff_y
             cutoff_y_lower = int(h/2) + cutoff_y
 
+            non_discarded_pixels = non_discarded_pixels + (4 * cutoff_y)
+
             for y_row in range(0, cutoff_y_upper):
                 r[y_row][:cutoff_x] = 0
                 r[y_row][w - cutoff_x:] = 0
-
+                
             for y_row in range(cutoff_y_lower, h):
                 r[y_row][:cutoff_x] = 0
                 r[y_row][w - cutoff_x:] = 0
+
+        print(f'non-discarded pixels: {non_discarded_pixels}')
+        print(f'total pixels: {h * w}')
+        print(f'percentage of discarded pixels: {1 - (non_discarded_pixels / (h * w))}')
 
         # Filter to detect redness
         f = eye[:, :, 0].astype(np.float)
