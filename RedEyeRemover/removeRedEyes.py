@@ -32,7 +32,10 @@ if __name__ == '__main__' :
     eyes = eyesCascade.detectMultiScale(img, scaleFactor=1.05, minNeighbors=8, minSize=(minwidth, minheight))
     
     # For every detected eye
-    for (x, y, w, h) in eyes:
+    for eye_counter, (x, y, w, h) in enumerate(eyes):
+        if defaults.VERBOSE:
+            print(f'---- Current eye: {eye_counter} ----')
+
         # Make eye selection a bit smaller
         y = y + defaults.Y_TOP_REDUCTION
         h = h - defaults.Y_BOTTOM_REDUCTION
@@ -63,11 +66,11 @@ if __name__ == '__main__' :
         non_discarded_pixels = 0
 
         for (cutoff_x, cutoff_y) in cutoffs:
+            non_discarded_pixels += 4 * cutoff_y
+
             cutoff_y_upper = int(h/2) - cutoff_y
             cutoff_y_lower = int(h/2) + cutoff_y
-
-            non_discarded_pixels = non_discarded_pixels + (4 * cutoff_y)
-
+            
             for y_row in range(0, cutoff_y_upper):
                 r[y_row][:cutoff_x] = 0
                 r[y_row][w - cutoff_x:] = 0
@@ -76,9 +79,10 @@ if __name__ == '__main__' :
                 r[y_row][:cutoff_x] = 0
                 r[y_row][w - cutoff_x:] = 0
 
-        print(f'non-discarded pixels: {non_discarded_pixels}')
-        print(f'total pixels: {h * w}')
-        print(f'percentage of discarded pixels: {1 - (non_discarded_pixels / (h * w))}')
+        if defaults.VERBOSE:
+            print(f'total pixels: {h * w}p')
+            print(f'non-discarded pixels: {non_discarded_pixels}p')
+            print(f'percentage of discarded pixels: {1 - (non_discarded_pixels / (h * w))}%')
 
         # Filter to detect redness
         f = eye[:, :, 0].astype(np.float)
@@ -92,27 +96,41 @@ if __name__ == '__main__' :
         bg = cv2.add(b, g)
 
         # Simple red eye detector.
-        # mask_higher = (r > 80) &  (r > bg)
-        mask_higher = (f > defaults.REDNESS_FILTER) & (r > b) & (r > g)
+        # mask = (r > 80) &  (r > bg)
+        mask = (f > defaults.REDNESS_FILTER) & (r > b) & (r > g)
         
         # Convert the mask to uint8 format.
-        mask_higher = mask_higher.astype(np.uint8)*255
+        mask = mask.astype(np.uint8)*255
+
+        # Pixels that meet the requirement
+        masked_pixels = 0
+        for row in mask:
+            unique, counts = np.unique(row, return_counts=True)
+            unique_dict = dict(zip(unique, counts))
+            try:
+                masked_pixels += unique_dict[255]
+            except KeyError:
+                masked_pixels += 0
+
+        if defaults.VERBOSE:
+            print(f'masked pixels: {masked_pixels}p')
+            print(f'masked percentage: {masked_pixels / non_discarded_pixels}%')
 
         # Clean mask -- 1) Fill holes 2) Dilate (expand) mask.
-        # mask_higher = rel.fillHoles(mask_higher)
-        # mask_higher = cv2.dilate(mask_higher, None, anchor=(-1, -1), iterations=3, borderType=1, borderValue=1)
+        # mask = rel.fillHoles(mask)
+        # mask = cv2.dilate(mask, None, anchor=(-1, -1), iterations=3, borderType=1, borderValue=1)
 
         # Calculate the mean channel by averaging the green and blue channels
         mean = bg / 2
         mean = mean[:, :, np.newaxis]
-        mask_higher = mask_higher.astype(np.bool)[:, :, np.newaxis]
+        mask = mask.astype(np.bool)[:, :, np.newaxis]
 
         # Copy the eye from the original image.
         eyeOut = eye.copy()
 
         # Copy the mean image to the output image.
         # np.copyto(eyeOut, mean, where=mask)
-        eyeOut_higher = np.where(mask_higher, mean, eyeOut)
+        eyeOut_higher = np.where(mask, mean, eyeOut)
 
         # Copy the fixed eye to the output image.
         imgOut[y:y+h, x:x+w, :] = eyeOut_higher

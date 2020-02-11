@@ -1,3 +1,6 @@
+# Console output of values
+VERBOSE = True
+
 # Reducing the height of the eye
 Y_TOP_REDUCTION = 30
 Y_BOTTOM_REDUCTION = 45
