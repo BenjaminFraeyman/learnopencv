@@ -15,6 +15,10 @@ INPUT_IMAGE = Path("RedEyeRemover/Pictures/Bloodshot/edited8.jpg")
 CLASSIFIER_CASCADE = Path("RedEyeRemover/HaarCascades/test1.xml")
 # CLASSIFIER_CASCADE = Path("RedEyeRemover/HaarCascades/default.xml")
 
+# Cascade parameters
+SCALEFACTOR = 1.05
+MIN_NEIGHBORS = 8
+
 # Eye ratio compared to a full face
 EYE_W_RATIO = 1/7
 EYE_H_RATIO = 1/9

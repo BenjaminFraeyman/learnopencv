@@ -10,7 +10,7 @@ from pathlib import Path
 import redeyelib as rel
 import defaults
 
-if __name__ == '__main__' :
+if __name__ == '__main__':
     if defaults.LOG_SAVE:
         if not defaults.LOG_SAVE_DESTINATION.exists():
             defaults.LOG_SAVE_DESTINATION.parent.mkdir(parents=True, exist_ok=True)
@@ -33,7 +33,12 @@ if __name__ == '__main__' :
     # https://www.bogotobogo.com/python/OpenCV_Python/python_opencv3_Image_Object_Detection_Face_Detection_Haar_Cascade_Classifiers.php
     # https://stackoverflow.com/questions/51132674/meaning-of-parameters-of-detectmultiscalea-b-c/51356792
     # https://stackoverflow.com/questions/22249579/opencv-detectmultiscale-minneighbors-parameter
-    eyes = eyesCascade.detectMultiScale(img, scaleFactor=1.05, minNeighbors=8, minSize=(minwidth, minheight))
+    eyes = eyesCascade.detectMultiScale(
+        img, 
+        scaleFactor=defaults.SCALEFACTOR, 
+        minNeighbors=defaults.MIN_NEIGHBORS, 
+        minSize=(minwidth, minheight)
+    )
     
     # For every detected eye
     for eye_counter, (x, y, w, h) in enumerate(eyes):
@@ -54,8 +59,8 @@ if __name__ == '__main__' :
         eye = img[y:y+h, x:x+w]
 
         # Display eye
-        # cv2.imshow('Eye', eye)
-        # cv2.waitKey(0)
+        cv2.imshow('Eye', eye)
+        cv2.waitKey(0)
 
         # Split eye image into 3 channels
         b = eye[:, :, 0]
@@ -68,7 +73,12 @@ if __name__ == '__main__' :
         # Calculate ellipse cutoffs
         cutoffs = []
         for x_value in range(0, int(w/2)):
-            cutoffs.append([x_value, rel.ellipse_Y(w, h, x_value)])
+            cutoffs.append(
+                [
+                    x_value, 
+                    rel.ellipse_Y(w, h, x_value)
+                ]
+            )
 
         # Pixels that do not count
         non_discarded_pixels = 0
@@ -103,7 +113,9 @@ if __name__ == '__main__' :
         # https://ieeexplore.ieee.org/document/1038147
         for row, (blue_row, green_row, red_row) in enumerate(zip(b, g, r)):
             for column, (blue, green, red) in enumerate(zip(blue_row, green_row, red_row)):
-                f[row, column] = float(math.pow(red, 2) / (math.pow(blue, 2) + math.pow(green, 2) + 1))
+                f[row, column] = float(
+                    math.pow(red, 2) / (math.pow(blue, 2) + math.pow(green, 2) + 1)
+                )
 
         # Add the green and blue channels together.
         bg = cv2.add(b, g)
