@@ -120,14 +120,17 @@ if __name__ == '__main__':
         # Add the green and blue channels together.
         bg = cv2.add(b, g)
 
-        # Simple red eye detector.
+        # Generate the redness mask.
         # mask = (r > 80) &  (r > bg)
-        mask = (f > defaults.F_VALUE) & (r > (defaults.RB_TEMP * b)) & (r > (defaults.RG_TEMP * g)) & (r > defaults.R_MINIMUM)
+        mask = (f > defaults.F_VALUE) &\
+               (r > (defaults.RB_TEMP * b)) &\
+               (r > (defaults.RG_TEMP * g)) &\
+               (r > defaults.R_MINIMUM)
         
         # Convert the mask to uint8 format.
         mask = mask.astype(np.uint8)*255
 
-        # Pixels that meet the requirement
+        # Pixels that meet the requirement.
         masked_pixels = 0
         for row in mask:
             unique, counts = np.unique(row, return_counts=True)
@@ -149,7 +152,7 @@ if __name__ == '__main__':
         # mask = rel.fillHoles(mask)
         # mask = cv2.dilate(mask, None, anchor=(-1, -1), iterations=3, borderType=1, borderValue=1)
 
-        # Calculate the mean channel by averaging the green and blue channels
+        # Calculate the mean channel by averaging the green and blue channels.
         mean = bg / 2
         mean = mean[:, :, np.newaxis]
         mask = mask.astype(np.bool)[:, :, np.newaxis]
