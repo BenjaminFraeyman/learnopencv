@@ -8,7 +8,7 @@ LOG_SAVE = False
 LOG_SAVE_DESTINATION = Path("RedEyeRemover/logs/logfile.txt")
 
 # Input image
-INPUT_IMAGE = Path("RedEyeRemover/Pictures/Bloodshot/edited8.jpg")
+INPUT_IMAGE = Path("RedEyeRemover/Pictures/Bloodshot/edited2.jpg")
 # INPUT_IMAGE = Path("RedEyeRemover/Pictures/Bloodshot/irritated.png")
 
 # Selected cascade classifier
@@ -34,5 +34,8 @@ X_RIGHT_OFFSET = 20
 # Reduce redness overall
 RED_OFFSET = 20
 
-# Line where redness is selected
-REDNESS_FILTER = 0.8
+# Filter values
+F_VALUE = 0.8
+RB_TEMP = 1.0
+RG_TEMP = 1.0
+R_MINIMUM = 100

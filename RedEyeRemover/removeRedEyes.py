@@ -59,8 +59,8 @@ if __name__ == '__main__':
         eye = img[y:y+h, x:x+w]
 
         # Display eye
-        cv2.imshow('Eye', eye)
-        cv2.waitKey(0)
+        # cv2.imshow('Eye', eye)
+        # cv2.waitKey(0)
 
         # Split eye image into 3 channels
         b = eye[:, :, 0]
@@ -122,7 +122,7 @@ if __name__ == '__main__':
 
         # Simple red eye detector.
         # mask = (r > 80) &  (r > bg)
-        mask = (f > defaults.REDNESS_FILTER) & (r > b) & (r > g)
+        mask = (f > defaults.F_VALUE) & (r > (defaults.RB_TEMP * b)) & (r > (defaults.RG_TEMP * g)) & (r > defaults.R_MINIMUM)
         
         # Convert the mask to uint8 format.
         mask = mask.astype(np.uint8)*255
