@@ -10,10 +10,11 @@ LOG_SAVE_DESTINATION = Path("RedEyeRemover/logs/logfile.txt")
 # Input image
 # INPUT_IMAGE = Path("RedEyeRemover/Pictures/Bloodshot/edited2.jpg")
 # INPUT_IMAGE = Path("RedEyeRemover/Pictures/Bloodshot/irritated.png")
-INPUT_IMAGE = Path("RedEyeRemover/Pictures/Colourtarget/face_with_target2.png")
+# INPUT_IMAGE = Path("RedEyeRemover/Pictures/Colourtarget/face_with_target2.png")
+INPUT_IMAGE = Path("RedEyeRemover/Pictures/Colourtarget/0.jpg")
 
 # Colourtarget
-TARGET_IMAGE = Path("RedEyeRemover/Pictures/Colourtarget/target_round2.png")
+TARGET_IMAGE = Path("RedEyeRemover/Pictures/Colourtarget/target_round2_D.png")
 
 # Selected cascade classifier
 CLASSIFIER_CASCADE = Path("RedEyeRemover/HaarCascades/test1.xml")

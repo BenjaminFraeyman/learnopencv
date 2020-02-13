@@ -1,6 +1,8 @@
 '''
     Copyright 2017 by Satya Mallick ( Big Vision LLC )
     http://www.learnopencv.com
+
+    target recognition: https://www.pyimagesearch.com/2015/01/26/multi-scale-template-matching-using-python-opencv/
 '''
 
 import cv2
@@ -42,6 +44,13 @@ if __name__ == '__main__':
 
             r_w = FACE.shape[1] / float(resized.shape[1])
             r_h = FACE.shape[0] / float(resized.shape[0])
+
+            # cv2.imshow("resized", resized)
+            # cv2.waitKey(0)
+
+            # if the resized image is smaller than the template, then break from the loop
+            if resized.shape[0] < tH or resized.shape[1] < tW:
+                break
 
             # Apply template matching to find the template in the image
             result = cv2.matchTemplate(resized, TARGET_CANNY, cv2.TM_CCOEFF)
