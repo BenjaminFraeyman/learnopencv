@@ -9,6 +9,9 @@ import math
 from pathlib import Path
 import redeyelib as rel
 import defaults
+import argparse
+import imutils
+import glob
 
 if __name__ == '__main__':
     if defaults.LOG_SAVE:
@@ -16,25 +19,76 @@ if __name__ == '__main__':
             defaults.LOG_SAVE_DESTINATION.parent.mkdir(parents=True, exist_ok=True)
         # Making sure the logfile is empty
         open(defaults.LOG_SAVE_DESTINATION, "w").close()
-
-    # Read image
-    img = cv2.imread(str(defaults.INPUT_IMAGE), cv2.IMREAD_COLOR)
     
+    # Read image
+    FACE = cv2.imread(str(defaults.INPUT_IMAGE), cv2.IMREAD_COLOR)
+    FACE_GRAY = cv2.cvtColor(FACE, cv2.COLOR_BGR2GRAY)
+    FACE_CANNY = cv2.Canny(FACE_GRAY, 50, 200)
+
+    # Read the colourtarget
+    TARGET = cv2.imread(str(defaults.TARGET_IMAGE), cv2.IMREAD_COLOR)
+    TARGET_GRAY = cv2.cvtColor(TARGET, cv2.COLOR_BGR2GRAY)
+    TARGET_CANNY = cv2.Canny(TARGET_GRAY, 50, 200)
+    (tH, tW) = TARGET_CANNY.shape[:2]
+
+    # bookkeeping variable to keep track of the matched region
+    found = None
+
+    # loop over the scales of the image
+    for scale_h in np.linspace(0.2, 3, 50)[::-1]:
+        for scale_w in np.linspace(0.2, 3, 50)[::-1]:
+            # resize the image according to the scale, and keep track of the ratio of the resizing
+            resized = cv2.resize(FACE_CANNY, (int(FACE.shape[1] * scale_w), int(FACE.shape[0] * scale_h)), interpolation = cv2.INTER_AREA)
+
+            r_w = FACE.shape[1] / float(resized.shape[1])
+            r_h = FACE.shape[0] / float(resized.shape[0])
+
+            # Apply template matching to find the template in the image
+            result = cv2.matchTemplate(resized, TARGET_CANNY, cv2.TM_CCOEFF)
+
+            (_, maxVal, _, maxLoc) = cv2.minMaxLoc(result)
+
+            # if we have found a new maximum correlation value, then update the bookkeeping variable
+            if found is None or maxVal > found[0]:
+                found = (maxVal, maxLoc, r_w, r_h)
+
+    # unpack the bookkeeping variable and compute the (x, y) coordinates
+    # of the bounding box based on the resized ratio
+    print(found)
+    (_, maxLoc, r_w, r_h) = found
+
+    (startX, startY) = (
+        int(maxLoc[0] * r_w), 
+        int(maxLoc[1] * r_h)
+    )
+    (endX, endY) = (
+        int((maxLoc[0] + tW) * r_w), 
+        int((maxLoc[1] + tH) * r_h)
+    )
+
+    print(f"{startX} - {startY} - {endX} - {endY}")
+    # draw a bounding box around the detected result and display the image
+    cv2.rectangle(FACE, (startX, startY), (endX, endY), (0, 0, 255), 2)
+    cv2.imshow("Image", FACE)
+    cv2.waitKey(0)
+
+
+
     # Output image
-    imgOut = img.copy()
+    FACE_OUT = FACE.copy()
     
     # Load HAAR cascade
     eyesCascade = cv2.CascadeClassifier(str(defaults.CLASSIFIER_CASCADE))
     
-    minwidth = int(img.shape[1] * defaults.EYE_W_RATIO)
-    minheight = int(img.shape[0] * defaults.EYE_H_RATIO)
+    minwidth = int(FACE.shape[1] * defaults.EYE_W_RATIO)
+    minheight = int(FACE.shape[0] * defaults.EYE_H_RATIO)
 
     # Detect eyes
     # https://www.bogotobogo.com/python/OpenCV_Python/python_opencv3_Image_Object_Detection_Face_Detection_Haar_Cascade_Classifiers.php
     # https://stackoverflow.com/questions/51132674/meaning-of-parameters-of-detectmultiscalea-b-c/51356792
     # https://stackoverflow.com/questions/22249579/opencv-detectmultiscale-minneighbors-parameter
     eyes = eyesCascade.detectMultiScale(
-        img, 
+        FACE, 
         scaleFactor=defaults.SCALEFACTOR, 
         minNeighbors=defaults.MIN_NEIGHBORS, 
         minSize=(minwidth, minheight)
@@ -56,7 +110,7 @@ if __name__ == '__main__':
         w = w - defaults.X_RIGHT_OFFSET
 
         # Extract eye from the image
-        eye = img[y:y+h, x:x+w]
+        eye = FACE[y:y+h, x:x+w]
 
         # Display eye
         # cv2.imshow('Eye', eye)
@@ -165,9 +219,9 @@ if __name__ == '__main__':
         eyeOut_higher = np.where(mask, mean, eyeOut)
 
         # Copy the fixed eye to the output image.
-        imgOut[y:y+h, x:x+w, :] = eyeOut_higher
+        FACE_OUT[y:y+h, x:x+w, :] = eyeOut_higher
 
     # Display Result
-    cv2.imshow('Red Eyes', img)
-    cv2.imshow('Red Eyes Removed', imgOut)
+    cv2.imshow('Red Eyes', FACE)
+    cv2.imshow('Red Eyes Removed', FACE_OUT)
     cv2.waitKey(0)
