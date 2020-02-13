@@ -3,6 +3,9 @@ from pathlib import Path
 # Console output of values
 VERBOSE = True
 
+# Display images
+DISPLAY = True
+
 # Save console output to file
 LOG_SAVE = False
 LOG_SAVE_DESTINATION = Path("RedEyeRemover/logs/logfile.txt")

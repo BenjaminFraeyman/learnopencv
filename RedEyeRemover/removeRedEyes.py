@@ -9,19 +9,17 @@ import cv2
 import numpy as np
 import math
 from pathlib import Path
+import imutils
+
 import redeyelib as rel
 import defaults
-import argparse
-import imutils
-import glob
+import logging
 
 if __name__ == '__main__':
-    if defaults.LOG_SAVE:
-        if not defaults.LOG_SAVE_DESTINATION.exists():
-            defaults.LOG_SAVE_DESTINATION.parent.mkdir(parents=True, exist_ok=True)
-        # Making sure the logfile is empty
-        open(defaults.LOG_SAVE_DESTINATION, "w").close()
+    logging.initiate()
     
+    logging.tell(f'---- Loading image and target. ----')
+
     # Read image
     FACE = cv2.imread(str(defaults.INPUT_IMAGE), cv2.IMREAD_COLOR)
     FACE_GRAY = cv2.cvtColor(FACE, cv2.COLOR_BGR2GRAY)
@@ -31,26 +29,36 @@ if __name__ == '__main__':
     TARGET = cv2.imread(str(defaults.TARGET_IMAGE), cv2.IMREAD_COLOR)
     TARGET_GRAY = cv2.cvtColor(TARGET, cv2.COLOR_BGR2GRAY)
     TARGET_CANNY = cv2.Canny(TARGET_GRAY, 50, 200)
-    (tH, tW) = TARGET_CANNY.shape[:2]
+    (tH, tW) = TARGET.shape[:2]
 
-    # bookkeeping variable to keep track of the matched region
+    # Bookkeeping variable to keep track of the matched region
     found = None
+
+    logging.tell(f'---- Starting targetdetection. ----')
 
     # loop over the scales of the image
     for scale_h in np.linspace(0.2, 3, 50)[::-1]:
         for scale_w in np.linspace(0.2, 3, 50)[::-1]:
-            # resize the image according to the scale, and keep track of the ratio of the resizing
-            resized = cv2.resize(FACE_CANNY, (int(FACE.shape[1] * scale_w), int(FACE.shape[0] * scale_h)), interpolation = cv2.INTER_AREA)
+            # Resize the image according to the scale
+            resized = cv2.resize(
+                FACE_CANNY, 
+                (
+                    int(FACE.shape[1] * scale_w), 
+                    int(FACE.shape[0] * scale_h)
+                ),
+                interpolation = cv2.INTER_AREA
+            )
 
+            # If the resized image is smaller than the template, then break from the loop
+            if resized.shape[0] < tH or resized.shape[1] < tW:
+                break
+            
+            # Keep track of the ratio of the resizing
             r_w = FACE.shape[1] / float(resized.shape[1])
             r_h = FACE.shape[0] / float(resized.shape[0])
 
             # cv2.imshow("resized", resized)
             # cv2.waitKey(0)
-
-            # if the resized image is smaller than the template, then break from the loop
-            if resized.shape[0] < tH or resized.shape[1] < tW:
-                break
 
             # Apply template matching to find the template in the image
             result = cv2.matchTemplate(resized, TARGET_CANNY, cv2.TM_CCOEFF)
@@ -61,9 +69,10 @@ if __name__ == '__main__':
             if found is None or maxVal > found[0]:
                 found = (maxVal, maxLoc, r_w, r_h)
 
+    logging.tell(f'\tTarget found: {found}')
+
     # unpack the bookkeeping variable and compute the (x, y) coordinates
     # of the bounding box based on the resized ratio
-    print(found)
     (_, maxLoc, r_w, r_h) = found
 
     (startX, startY) = (
@@ -75,13 +84,23 @@ if __name__ == '__main__':
         int((maxLoc[1] + tH) * r_h)
     )
 
-    print(f"{startX} - {startY} - {endX} - {endY}")
-    # draw a bounding box around the detected result and display the image
-    cv2.rectangle(FACE, (startX, startY), (endX, endY), (0, 0, 255), 2)
-    cv2.imshow("Image", FACE)
-    cv2.waitKey(0)
+    logging.tell(f'\tStart x/y: {startX} / {startY}')
+    logging.tell(f'\tEnd x/y: {endX} / {endY}')
 
-
+    # Draw a bounding box around the detected result and display the image
+    FACE_TARGET = FACE.copy()
+    cv2.rectangle(
+        FACE_TARGET, 
+        (startX, startY), 
+        (endX, endY), 
+        (0, 0, 255), 
+        2
+    )
+    if defaults.DISPLAY:
+        cv2.imshow("Target detected", FACE_TARGET)
+        cv2.waitKey(0)
+    
+    logging.tell(f'---- Start of eyedetection. ----')
 
     # Output image
     FACE_OUT = FACE.copy()
@@ -105,12 +124,7 @@ if __name__ == '__main__':
     
     # For every detected eye
     for eye_counter, (x, y, w, h) in enumerate(eyes):
-        if defaults.VERBOSE:
-            print(f'---- Current eye: {eye_counter} ----')
-        if defaults.LOG_SAVE:
-            with open(defaults.LOG_SAVE_DESTINATION, "a+") as LOGFILE:
-                LOGFILE.write(f'---- Current eye: {eye_counter} ----\r\n')
-        
+        logging.tell(f'---- Current eye: {eye_counter} ----')
 
         # Make eye selection a bit smaller
         y = y + defaults.Y_TOP_REDUCTION
@@ -160,15 +174,9 @@ if __name__ == '__main__':
                 r[y_row][:cutoff_x] = 0
                 r[y_row][w - cutoff_x:] = 0
 
-        if defaults.VERBOSE:
-            print(f'\ttotal pixels: {h * w}p')
-            print(f'\tnon-discarded pixels: {non_discarded_pixels}p')
-            print(f'\tpercentage of discarded pixels: {np.round(1 - (non_discarded_pixels / (h * w)), 3)}%')
-        if defaults.LOG_SAVE:
-            with open(defaults.LOG_SAVE_DESTINATION, "a+") as LOGFILE:
-                LOGFILE.write(f'\ttotal pixels: {h * w}p\r\n')
-                LOGFILE.write(f'\tnon-discarded pixels: {non_discarded_pixels}p\r\n')
-                LOGFILE.write(f'\tpercentage of discarded pixels: {np.round(1 - (non_discarded_pixels / (h * w)), 3)}%\r\n')
+        logging.tell(f'\ttotal pixels: {h * w}p')
+        logging.tell(f'\tnon-discarded pixels: {non_discarded_pixels}p')
+        logging.tell(f'\tpercentage of discarded pixels: {np.round(1 - (non_discarded_pixels / (h * w)), 3)}%')
 
         # Filter to detect redness
         f = eye[:, :, 0].astype(np.float)
@@ -203,13 +211,8 @@ if __name__ == '__main__':
             except KeyError:
                 masked_pixels += 0
 
-        if defaults.VERBOSE:
-            print(f'\tmasked pixels: {masked_pixels}p')
-            print(f'\tmasked percentage: {np.round(masked_pixels / non_discarded_pixels, 3)}%')
-        if defaults.LOG_SAVE:
-            with open(defaults.LOG_SAVE_DESTINATION, "a+") as LOGFILE:
-                LOGFILE.write(f'\tmasked pixels: {masked_pixels}p\r\n')
-                LOGFILE.write(f'\tmasked percentage: {np.round(masked_pixels / non_discarded_pixels, 3)}%\r\n')
+        logging.tell(f'\tmasked pixels: {masked_pixels}p')
+        logging.tell(f'\tmasked percentage: {np.round(masked_pixels / non_discarded_pixels, 3)}%')
 
         # Clean mask -- 1) Fill holes 2) Dilate (expand) mask.
         # mask = rel.fillHoles(mask)
